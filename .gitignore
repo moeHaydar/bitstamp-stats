@@ -1,0 +1,13 @@
+*.DS_Store
+# Logs
+*.log
+npm-debug.log*
+
+# Dependency directories
+node_modules
+
+# Optional npm cache directory
+.npm
+
+# ignore config file
+config.js

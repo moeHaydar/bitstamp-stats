@@ -1,0 +1,32 @@
+{
+  "name": "bitstamp_api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Moe Haydar",
+  "license": "ISC",
+  "dependencies": {
+    "async": "^2.5.0",
+    "axios": "^0.16.2",
+    "collections": "^5.0.7",
+    "commander": "^2.11.0",
+    "lodash": "^4.17.4",
+    "moment": "^2.18.1",
+    "numeral": "^2.0.6",
+    "prompt-confirm": "^1.2.0",
+    "qs": "^6.5.0",
+    "winston": "^2.3.1"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/moeHaydar/bitstamp-stats.git"
+  },
+  "bugs": {
+    "url": "https://github.com/moeHaydar/bitstamp-stats/issues"
+  }
+}
