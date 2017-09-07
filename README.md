@@ -1,4 +1,4 @@
-#A CLI to interact with bitstamps api:
+# A CLI to interact with bitstamps api:
 Provides you with valuable stats, such as fees paid, profit made and volume traded. Per month or per day. **Supports only Bitcoin (btc\_usd and btc\_eur).**
 
 ### You can
