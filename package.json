@@ -12,6 +12,7 @@
   "dependencies": {
     "async": "^2.5.0",
     "axios": "^0.16.2",
+    "bitstampjs": "^1.0.0",
     "collections": "^5.0.7",
     "commander": "^2.11.0",
     "lodash": "^4.17.4",

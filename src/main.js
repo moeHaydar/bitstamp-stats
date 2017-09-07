@@ -4,7 +4,7 @@ const colors = require('colors');
 const logger = require('./logger');
 const async = require('async');
 
-const { Bitstamp } = require('./bitstamp');
+const { Bitstamp } = require('bitstampjs');
 const { Stats } = require('./stats');
 const { Balance } = require('./balance');
 const { Record } = require('./record');
@@ -17,11 +17,13 @@ exports.Main = class {
 
     logger.info('Currency set to: ' + this.currency.green);
 
-    this.btc_currency = 'btc_' + this.currency;
+    this.btcCurrency = 'btc_' + this.currency;
+    this.currencyPair = 'btc' + this.currency;
 
     this.bitstamp = new Bitstamp(config.bitstamp.API_KEY, config.bitstamp.SECRET,
-      config.bitstamp.CUSTOMER_ID, this.currency);
+      config.bitstamp.CUSTOMER_ID, this.currencyPair);
   }
+
 
   getOpenOrders(cb) {
     logger.info('Getting open orders ...'.cyan);
@@ -174,7 +176,7 @@ exports.Main = class {
         return this.bitstamp.printError(err, logger.error);
       }
 
-      let trades = new Balance(this.currency, this.btc_currency, logger).init(rawData).getTrades();
+      let trades = new Balance(this.currency, this.btcCurrency, logger).init(rawData).getTrades();
 
       logger.info('Transactions: ' + rawData.length);
       let statsAllBuying = new Stats(this.currencySign);
@@ -283,7 +285,7 @@ exports.Main = class {
         return this.bitstamp.printError(err, logger.error);
       }
 
-      let balance = new Balance(this.currency, this.btc_currency, logger).init(results.transactions);
+      let balance = new Balance(this.currency, this.btcCurrency, logger).init(results.transactions);
 
       if (!isMinimal) {
         balance.printCurrentBalance();
@@ -313,7 +315,7 @@ exports.Main = class {
         return this.bitstamp.printError(err, logger.error);
       }
 
-      let trades = new Balance(this.currency, this.btc_currency, logger).init(rawData).getTrades();
+      let trades = new Balance(this.currency, this.btcCurrency, logger).init(rawData).getTrades();
 
       let statsAllRevenue = new Stats(this.currencySign);
 

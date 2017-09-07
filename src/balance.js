@@ -2,7 +2,7 @@
 const _ = require('lodash');
 const moment = require('moment');
 const { Record } = require('./record');
-const { Bitstamp } = require('./bitstamp');
+const { Bitstamp } = require('bitstampjs');
 
 class AmountFee {
   constructor (amount = 0, fee = 0) {
