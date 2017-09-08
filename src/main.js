@@ -48,7 +48,7 @@ exports.Main = class {
         }
       });
 
-      cb(null);
+      if (cb) cb(null);
     });
   }
 
