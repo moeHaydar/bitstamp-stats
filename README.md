@@ -32,21 +32,26 @@ Run:
 
 ---
 
-Supported options
+  Options:
 
-    -o, --orders                 list all open orders
-    -c, --cancel <id>            cancel order <id>
-    -b, --buy <btc-amount>       place a buy limit order <btc amount> at set price, use with -p <price>
-    -s, --sell <btc-amount>      place a sell limit order at set price, use with -p <price>
-    -t, --trades                 trades
-    -r, --revenue                revenue
-    -x, --calc_sel <btc-amount>  Calculate profit when selling <amount> at set price, use with -p <price>
-    -z, --calc_sel_buy <order>   Calculate profit with trade
-    -p, --price <price>          sets price of request
-    -m, --minimal                display minimal details
-    -h, --help                   output usage information
+    -d, --do <action>         action to perform
+    -i, --id <id>             sets id of request
+    -p, --price <price>       sets price of request
+    -b, --buy_price <price>   sets buy price of request
+    -s, --sell_price <price>  sets sell price of request
+    -a, --amount <amount>     sets amount of request
+    -m, --minimal             display minimal details
+    -h, --help                output usage information
 
+  Supported actions:
 
+    o, orders                                                  list all open orders
+    c, cancel -id <id>                                         cancel order <id>
+    t, trades                                                  lists all traders stats use
+    r, revenue                                                 lists revenue stats use 
+    b, buy -a <amount> -p <price>                              Sets a buy limit order use 
+    s, sell -a <amount> -p <price>                             Sets a sell limit order use 
+    sim, simulate -a <amount> -b* <buy price> -s <sell price>  Simulate a trade. -b is optional: If not set, then uses your available balance.
 
 ---
 

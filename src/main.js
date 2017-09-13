@@ -247,6 +247,7 @@ exports.Main = class {
       statsAllSelling.printTradeStats(logger.info, 'All Selling stats'.bold.cyan, "");
     });
   }
+
   calcTrade(amount, buyPrice, sellPrice) {
     logger.info('calculating profit if buying '.cyan + '%j'.magenta + ' btc @ '.cyan + '%j %s'.magenta + ' and selling @ '.cyan + '%j %s'.magenta + '...'.cyan, amount, buyPrice, this.currencySign, sellPrice, this.currencySign);
 
@@ -261,8 +262,10 @@ exports.Main = class {
 
       let expectedBuyFee = parseFloat(buyPrice) * parseFloat(results.user.fee) / 100;
       let expectedSellFee = parseFloat(sellPrice) * parseFloat(results.user.fee) / 100;
+      let expectedRevenue = amount * (sellPrice - buyPrice);
+      let expectedProfit = expectedRevenue - expectedBuyFee - expectedSellFee;
 
-      let expectedProfit = amount * (sellPrice - buyPrice) - expectedBuyFee - expectedSellFee;
+      logger.info((' Expected Revenue (' + this.currencySign + '): ').yellow + (expectedRevenue + '').green);
 
       logger.info((' Expected buy fee (' + this.currencySign + '): ').yellow + (expectedBuyFee + '').red);
       logger.info(('Expected sell fee (' + this.currencySign + '): ').yellow + (expectedSellFee + '').red);
