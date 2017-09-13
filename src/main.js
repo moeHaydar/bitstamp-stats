@@ -123,7 +123,7 @@ exports.Main = class {
     });
 
   }
-
+  
   sellLimitOrder(amount, price, isMinimal) {
     logger.info('Place sell limit order '.cyan + 'amount='.cyan + (amount + '').green + ' price='.cyan + (price + '').green);
 
@@ -166,6 +166,47 @@ exports.Main = class {
         logger.info(err.red)
       };
     });
+  }
+
+  sellNow(amount, isMinimal) {
+    logger.info('Selling '.cyan + 'amount='.cyan + (amount + '').green + ' at '.cyan + 'market price'.green);
+    
+    let data = null
+    
+      async.waterfall([
+        next => {
+          this.bitstamp.getHourlyTicker(next);
+        },
+        (rawData, next) => {
+          if (!isMinimal) {
+
+            logger.info('In the last hour: '.yellow);
+            logger.info('\t' + logger.spacedString('Last BTC price', 40) + '  ' + logger.spacedString(rawData.last, 20));
+            logger.info('\t' + logger.spacedString('HIGH price', 40) + '  ' + logger.spacedString(rawData.high, 20));
+            logger.info('\t' + logger.spacedString('LOW price', 40) + '  ' + logger.spacedString(rawData.low, 20));
+            logger.info('\t' + logger.spacedString('volume weighted average price', 40) + '  ' + logger.spacedString(rawData.vwap, 20));
+            logger.info('\t' + logger.spacedString('Volume', 40) + '  ' + logger.spacedString(rawData.volume, 20));
+            logger.info('\t' + logger.spacedString('Highest buy order', 40) + '  ' + logger.spacedString(rawData.bid, 20));
+            logger.info('\t' + logger.spacedString('Lowest sell order.', 40) + '  ' + logger.spacedString(rawData.ask, 20));
+            logger.info('\t' + logger.spacedString('timestamp', 40) + '  ' + logger.spacedString(rawData.timestamp, 20));
+            logger.info('\t' + logger.spacedString('First price', 40) + '  ' + logger.spacedString(rawData.open, 20));
+
+            logger.info();
+          }
+
+          let priceChosen = rawData.last;
+          logger.info('Price to sell: '.yellow + (priceChosen + ' ' + this.currencySign).red );
+
+          next(null, priceChosen);
+        }, 
+        (priceChosen, next) => {
+          this.sellLimitOrder(amount, priceChosen, isMinimal);
+        }
+      ], (err) => {
+        if (err) {
+          return this.bitstamp.printError(err, logger.error);
+        };
+      });
   }
 
   getTrades(isMinimal) {

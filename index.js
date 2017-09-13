@@ -37,6 +37,8 @@ args.on('--help', function(){
   printOption('s, sell -a <amount> -p <price>', 'Sets a sell limit order' + ' use -m to show minial info'.grey);
   printOption('sim, simulate -a <amount> -b* <buy_price> -s <sell_price>', 'Simulate a trade. -b is optional: If not set, then uses your available balance.' + ' use -m to show minial info'.grey);
 
+
+  printOption('sn, sellnow -a <amount>', 'Sells amount using limit order with current market price' + ' use -m to show minial info'.grey);
   console.log('');
 });
 
@@ -119,6 +121,12 @@ if (args.do) {
     case 'c':
       requiredField('id', 'id option needed: use with -i <id>');
       main.cancelOrder(args.id);
+      break;
+
+    case 'sellnow':
+    case 'sn':
+      requiredField('amount', 'Amount option needed: use with -a <amount>', false)
+      main.sellNow(args.amount, args.minimal);
       break;
 
     default:

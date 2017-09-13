@@ -52,6 +52,7 @@ Run:
     b, buy -a <amount> -p <price>                              Sets a buy limit order use 
     s, sell -a <amount> -p <price>                             Sets a sell limit order use 
     sim, simulate -a <amount> -b* <buy price> -s <sell price>  Simulate a trade. -b is optional: If not set, then uses your available balance.
+    sn, sellnow -a <amount>                                    Sells amount using limit order with current market price
 
 ---
 

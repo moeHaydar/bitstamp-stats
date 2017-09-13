@@ -12,13 +12,14 @@
   "dependencies": {
     "async": "^2.5.0",
     "axios": "^0.16.2",
-    "bitstampjs": "^1.0.0",
+    "bitstampjs": "^1.0.3",
     "collections": "^5.0.7",
     "commander": "^2.11.0",
     "lodash": "^4.17.4",
     "moment": "^2.18.1",
     "numeral": "^2.0.6",
     "prompt-confirm": "^1.2.0",
+    "pusher-js": "^4.1.0",
     "qs": "^6.5.0",
     "winston": "^2.3.1"
   },
