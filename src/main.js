@@ -24,7 +24,6 @@ exports.Main = class {
       config.bitstamp.CUSTOMER_ID, this.currencyPair);
   }
 
-
   getOpenOrders(cb) {
     logger.info('Getting open orders ...'.cyan);
 
@@ -78,10 +77,107 @@ exports.Main = class {
     logger.info((logger.spacedString((order.type == 0) ? 'BUY' : 'SELL', 20) + logger.spacedString(order.amount, 20) + logger.spacedString(order.price, 20) + logger.spacedString(order.id, 20)).green);
   }
 
+  isAmountAll(amount) {
+  	return (amount + '').toLowerCase() === 'all';
+  }
+
+  processAmountCurrency(amount, price, isMinimal, cb) {
+  	if (this.isAmountAll(amount)) {
+			this.bitstamp.getUserBalance((err, data) => {
+				if (err) {
+	      	return cb(err);
+	    	}
+
+	    	let balance = parseFloat(data[this.currency + '_balance']);
+	    	amount =  balance / parseFloat(price);
+	    	if (!isMinimal ) {
+	    		logger.info('Current balance: '.yellow + (balance + ' ' + this.currencySign).green);	
+	    	}
+	    		
+	    	cb(null, amount);
+			});
+		} else {
+			cb(null, parseFloat(amount));
+		}
+  }
+
+  processAmountCoin(amount, cb) {
+  	if (this.isAmountAll(amount)) {
+			this.bitstamp.getUserBalance((err, data) => {
+				if (err) {
+	      	return cb(err);
+	    	}
+	
+	    	cb(null, parseFloat(data['btc_balance']));
+			});
+		} else {
+			cb(null, parseFloat(amount));
+		}
+  }
+
+  processPrice(price, isMinimal, cb) {
+    if ( ('' + price).toLowerCase() !== 'now') {
+    	cb(null, parseFloat(price));
+    }	else {
+
+	    async.waterfall([
+	      next => {
+	        this.bitstamp.getHourlyTicker(next);
+	      },
+	      (rawData, next) => {
+	        if (!isMinimal) {
+
+	          logger.info('In the last hour: '.yellow);
+	          logger.info('\t' + logger.spacedString('Last BTC price', 40) + '  ' + logger.spacedString(rawData.last, 20));
+	          logger.info('\t' + logger.spacedString('HIGH price', 40) + '  ' + logger.spacedString(rawData.high, 20));
+	          logger.info('\t' + logger.spacedString('LOW price', 40) + '  ' + logger.spacedString(rawData.low, 20));
+	          logger.info('\t' + logger.spacedString('volume weighted average price', 40) + '  ' + logger.spacedString(rawData.vwap, 20));
+	          logger.info('\t' + logger.spacedString('Volume', 40) + '  ' + logger.spacedString(rawData.volume, 20));
+	          logger.info('\t' + logger.spacedString('Highest buy order', 40) + '  ' + logger.spacedString(rawData.bid, 20));
+	          logger.info('\t' + logger.spacedString('Lowest sell order.', 40) + '  ' + logger.spacedString(rawData.ask, 20));
+	          logger.info('\t' + logger.spacedString('timestamp', 40) + '  ' + logger.spacedString(rawData.timestamp, 20));
+	          logger.info('\t' + logger.spacedString('First price', 40) + '  ' + logger.spacedString(rawData.open, 20));
+
+	          logger.info();
+	        }
+
+	        let priceChosen = rawData.last;
+	        next(null, priceChosen);
+	      }
+    	], cb);
+	  }
+  }
+
   buyLimitOrder(amount, price, isMinimal) {
     logger.info('Place buy limit order '.cyan + 'amount='.cyan + (amount + '').green + ' price='.cyan + (price + '').green);
 
     async.series([
+    	done => {
+    		this.processPrice(price, isMinimal, (err, priceChosen) => {
+    			if (err) {
+    				return done(err);
+    			}
+
+    			price = priceChosen;
+    			logger.info('Price to buy: '.yellow + (priceChosen + ' ' + this.currencySign).green );
+    			done(null);
+    		});
+    	},
+
+    	done => {
+    		this.processAmountCurrency(amount, price, isMinimal, (err, newAmount) => {
+    			if (err) {
+    				return done(err);
+    			}
+
+    			amount = newAmount;
+
+	    		logger.info('Amount to buy: '.yellow + (amount + ' btc').green);
+
+	    		done(null)
+    		});
+    	},
+
       done => {
        new Confirm('Are you sure?')
         .ask(ok => {
@@ -94,7 +190,6 @@ exports.Main = class {
       },
       done => {
         this.bitstamp.buyLimitOrder(amount, price, (err, result) => {
-
           if (err) {
             return this.bitstamp.printError(err, logger.error);
           }
@@ -117,17 +212,42 @@ exports.Main = class {
         }
       }
       ], (err, result) => {
-      if (err) {
-        logger.info(err.red)
-      };
-    });
-
+	      if (err) {
+	        logger.info(err)
+	      };
+	   	});
   }
   
   sellLimitOrder(amount, price, isMinimal) {
     logger.info('Place sell limit order '.cyan + 'amount='.cyan + (amount + '').green + ' price='.cyan + (price + '').green);
 
     async.series([
+    	done => {
+    		this.processPrice(price, isMinimal, (err, priceChosen) => {
+    			if (err) {
+    				return done(err);
+    			}
+
+    			price = priceChosen;
+    			logger.info('Price to sell: '.yellow + (priceChosen + ' ' + this.currencySign).green );
+    			done(null);
+    		});
+    	},
+
+    	done => {
+    		this.processAmountCoin(amount, (err, newAmount) => {
+    			if (err) {
+    				return done(err);
+    			}
+
+    			amount = newAmount;
+
+	    		logger.info('Amount to sell: '.yellow + (amount + ' btc').green);
+
+	    		done(null);
+    		});
+    	},
+
       done => {
        new Confirm('Are you sure?')
         .ask(ok => {
@@ -162,51 +282,10 @@ exports.Main = class {
         }
       }
       ], (err, result) => {
-      if (err) {
-        logger.info(err.red)
-      };
+	      if (err) {
+	        logger.info(err.red)
+	      };
     });
-  }
-
-  sellNow(amount, isMinimal) {
-    logger.info('Selling '.cyan + 'amount='.cyan + (amount + '').green + ' at '.cyan + 'market price'.green);
-    
-    let data = null
-    
-      async.waterfall([
-        next => {
-          this.bitstamp.getHourlyTicker(next);
-        },
-        (rawData, next) => {
-          if (!isMinimal) {
-
-            logger.info('In the last hour: '.yellow);
-            logger.info('\t' + logger.spacedString('Last BTC price', 40) + '  ' + logger.spacedString(rawData.last, 20));
-            logger.info('\t' + logger.spacedString('HIGH price', 40) + '  ' + logger.spacedString(rawData.high, 20));
-            logger.info('\t' + logger.spacedString('LOW price', 40) + '  ' + logger.spacedString(rawData.low, 20));
-            logger.info('\t' + logger.spacedString('volume weighted average price', 40) + '  ' + logger.spacedString(rawData.vwap, 20));
-            logger.info('\t' + logger.spacedString('Volume', 40) + '  ' + logger.spacedString(rawData.volume, 20));
-            logger.info('\t' + logger.spacedString('Highest buy order', 40) + '  ' + logger.spacedString(rawData.bid, 20));
-            logger.info('\t' + logger.spacedString('Lowest sell order.', 40) + '  ' + logger.spacedString(rawData.ask, 20));
-            logger.info('\t' + logger.spacedString('timestamp', 40) + '  ' + logger.spacedString(rawData.timestamp, 20));
-            logger.info('\t' + logger.spacedString('First price', 40) + '  ' + logger.spacedString(rawData.open, 20));
-
-            logger.info();
-          }
-
-          let priceChosen = rawData.last;
-          logger.info('Price to sell: '.yellow + (priceChosen + ' ' + this.currencySign).red );
-
-          next(null, priceChosen);
-        }, 
-        (priceChosen, next) => {
-          this.sellLimitOrder(amount, priceChosen, isMinimal);
-        }
-      ], (err) => {
-        if (err) {
-          return this.bitstamp.printError(err, logger.error);
-        };
-      });
   }
 
   getTrades(isMinimal) {
@@ -289,10 +368,38 @@ exports.Main = class {
     });
   }
 
-  calcTrade(amount, buyPrice, sellPrice) {
-    logger.info('calculating profit if buying '.cyan + '%j'.magenta + ' btc @ '.cyan + '%j %s'.magenta + ' and selling @ '.cyan + '%j %s'.magenta + '...'.cyan, amount, buyPrice, this.currencySign, sellPrice, this.currencySign);
+  calcTrade(amount, buyPrice, sellPrice, isMinimal) {
+    if (amount.toLowerCase() === 'all') {
+    	return logger.info('option value not supported: '.red + '"-a all"'.green);
+    }
+    
+    logger.info('calculating profit if buying '.cyan + '%j'.magenta + ' @ '.cyan + '%j'.magenta + ' and selling @ '.cyan + '%j '.magenta + '...'.cyan, amount, buyPrice, sellPrice);
 
     async.series({
+    	currentPriceBuy: done => {
+    		this.processPrice(buyPrice, isMinimal, (err, priceChosen) => {
+    			if (err) {
+    				return done(err);
+    			}
+
+    			buyPrice = priceChosen;
+    			logger.info('Price to buy: '.yellow + (priceChosen + ' ' + this.currencySign).green );
+    			done(null);
+    		});
+    	},
+
+    	currentPriceSell: done => {
+    		this.processPrice(sellPrice, isMinimal, (err, priceChosen) => {
+    			if (err) {
+    				return done(err);
+    			}
+
+    			sellPrice = priceChosen;
+    			logger.info('Price to sell: '.yellow + (priceChosen + ' ' + this.currencySign).green );
+    			done(null);
+    		});
+    	},
+
       user: done => {
         this.bitstamp.getUserBalance(done);
       }
@@ -315,12 +422,39 @@ exports.Main = class {
   }
 
   calcSellAt(amount, price, isMinimal) {
-    logger.info('calculating profit if selling '.cyan + '%j btc'.yellow + ' @ '.cyan + '%j %s'.yellow + '...'.cyan, amount, price, this.currencySign);
+    logger.info('calculating profit if selling '.cyan + '%j'.yellow + ' @ '.cyan + '%j'.yellow + '...'.cyan, amount, price);
 
     async.series({
-      transactions: done => {
+    	currentPrice: done => {
+    		this.processPrice(price, isMinimal, (err, priceChosen) => {
+    			if (err) {
+    				return done(err);
+    			}
+
+    			price = priceChosen;
+    			logger.info('Price to sell: '.yellow + (priceChosen + ' ' + this.currencySign).green );
+    			done(null);
+    		});
+    	},
+
+    	amountCoin: done => {
+    		this.processAmountCoin(amount, (err, newAmount) => {
+    			if (err) {
+    				return done(err);
+    			}
+
+    			amount = newAmount;
+
+	    		logger.info('Amount to sell: '.yellow + (amount + ' btc').green);
+
+	    		done(null);
+    		});
+    	},
+
+    	transactions: done => {
         this.bitstamp.getUserTransactions(done);
       },
+
       user: done => {
         this.bitstamp.getUserBalance(done);
       }

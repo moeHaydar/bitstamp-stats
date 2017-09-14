@@ -11,10 +11,10 @@ args
   .option('-d, --do <action>', 'action to perform')
   .option('-i, --id <id>', 'sets id of request', parseInt)
 
-  .option('-p, --price <price>', 'sets price of request', parseFloat)
-  .option('-b, --buy_price <price>', 'sets buy price of request', parseFloat)
-  .option('-s, --sell_price <price>', 'sets sell price of request', parseFloat)
-  .option('-a, --amount <amount>', 'sets amount of request', parseFloat)
+  .option('-p, --price <price>', 'sets price of request. Supports "now"')
+  .option('-b, --buy_price <price>', 'sets buy price of request. Supports "now"')
+  .option('-s, --sell_price <price>', 'sets sell price of request. Supports "now"')
+  .option('-a, --amount <amount>', 'sets amount of request. Supports "all"')
   .option('-m, --minimal', 'display minimal details');
 
 
@@ -36,9 +36,6 @@ args.on('--help', function(){
   printOption('b, buy -a <amount> -p <price>', 'Sets a buy limit order' + ' use -m to show minial info'.grey);
   printOption('s, sell -a <amount> -p <price>', 'Sets a sell limit order' + ' use -m to show minial info'.grey);
   printOption('sim, simulate -a <amount> -b* <buy_price> -s <sell_price>', 'Simulate a trade. -b is optional: If not set, then uses your available balance.' + ' use -m to show minial info'.grey);
-
-
-  printOption('sn, sellnow -a <amount>', 'Sells amount using limit order with current market price' + ' use -m to show minial info'.grey);
   console.log('');
 });
 
@@ -65,6 +62,10 @@ let requiredFields = (...r) => {
   };
 }
 
+let printHelpMessages = () => {
+  logger.info('Please choose one at least one of the options'.red);
+  args.outputHelp();
+}
 
 if (args.do) {
   switch(args.do) {
@@ -91,7 +92,7 @@ if (args.do) {
       );
 
       if (args.buy_price) {
-        main.calcTrade(args.amount, args.buy_price, args.sell_price);
+        main.calcTrade(args.amount, args.buy_price, args.sell_price, args.minimal);
       } else {
         main.calcSellAt(args.amount, args.sell_price, args.minimal);
       }
@@ -123,15 +124,10 @@ if (args.do) {
       main.cancelOrder(args.id);
       break;
 
-    case 'sellnow':
-    case 'sn':
-      requiredField('amount', 'Amount option needed: use with -a <amount>', false)
-      main.sellNow(args.amount, args.minimal);
-      break;
-
     default:
-      logger.info('Please choose one at least one of the options'.red);
-      args.outputHelp();
+      printHelpMessages();
   }
-} 
+} else {
+  printHelpMessages();
+}
 
