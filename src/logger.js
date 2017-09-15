@@ -24,4 +24,8 @@ logger.spacedString = (str, minLength) => {
   return str;
 };
 
+logger.printAny = (str) => {
+  return (str) ? str : '';
+}
+
 module.exports = logger;

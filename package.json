@@ -15,6 +15,7 @@
     "bitstampjs": "^1.0.3",
     "collections": "^5.0.7",
     "commander": "^2.11.0",
+    "kraken-api": "^1.0.0",
     "lodash": "^4.17.4",
     "moment": "^2.18.1",
     "numeral": "^2.0.6",

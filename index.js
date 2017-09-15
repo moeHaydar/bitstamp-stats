@@ -5,17 +5,19 @@ const args = require('commander');
 const config = require('./config.js');
 const { Main } = require('./src/main');
 
+
+
 // set options
 args
   .version('0.0.1')
   .option('-d, --do <action>', 'action to perform')
   .option('-i, --id <id>', 'sets id of request', parseInt)
-
   .option('-p, --price <price>', 'sets price of request. Supports "now"')
   .option('-b, --buy_price <price>', 'sets buy price of request. Supports "now"')
   .option('-s, --sell_price <price>', 'sets sell price of request. Supports "now"')
   .option('-a, --amount <amount>', 'sets amount of request. Supports "all"')
-  .option('-m, --minimal', 'display minimal details');
+  .option('-m, --minimal', 'display minimal details')
+  .option('-e, --exchange <exchange>', 'bitstamp, kraken. default: bitstamp');
 
 
 args.on('--help', function(){
@@ -41,7 +43,7 @@ args.on('--help', function(){
 
 args.parse(process.argv);
 
-let main = new Main(config);
+let main = new Main(config, args.exchange);
 
 let requiredField = (field, erroMsg, exitOnFail=true) => {
   if (!args[field]) {
@@ -71,7 +73,7 @@ if (args.do) {
   switch(args.do) {
     case 'trades':
     case 't':
-      main.getTrades(args.minimal);
+      main.getTrades(args.minimal);  
       break;
 
     case 'revenue':
@@ -81,7 +83,7 @@ if (args.do) {
 
     case 'orders':
     case 'o':
-      main.getOpenOrders();
+      main.getOpenOrders(args.minimal);
       break;
 
     case 'simulate':

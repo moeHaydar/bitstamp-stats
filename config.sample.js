@@ -5,5 +5,10 @@ module.exports = {
     CUSTOMER_ID: 'CUSTOMER_ID',
 
     currency: 'eur' // eur or usd
+  },
+  
+  kraken: {
+  	SECRET: '',
+  	KEY: ''
   }
 };

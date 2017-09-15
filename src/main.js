@@ -9,9 +9,10 @@ const { Stats } = require('./stats');
 const { Balance } = require('./balance');
 const { Record } = require('./record');
 const Confirm = require('prompt-confirm');
+const KrakenClient = require('kraken-api');
 
 exports.Main = class {
-  constructor(config) {
+  constructor(config, exchange) {
     this.currency = (config.bitstamp.currency === 'eur') ? 'eur' : 'usd';
     this.currencySign = (this.currency === 'eur') ? '€' : '$';
 
@@ -22,33 +23,111 @@ exports.Main = class {
 
     this.bitstamp = new Bitstamp(config.bitstamp.API_KEY, config.bitstamp.SECRET,
       config.bitstamp.CUSTOMER_ID, this.currencyPair);
+
+    this.kraken = new KrakenClient(config.kraken.KEY, config.kraken.SECRET);
+
+    if (exchange === 'kraken') {
+      this.isKraken = true;
+    }
+
+    this.printMainExchange();
   }
 
-  getOpenOrders(cb) {
+  printMainExchange() {
+    let exchange = this.isKraken ? 'Kraken' : 'Bitstamp';
+    logger.info('Main exhange: ' + exchange.green);
+  }
+
+  getOpenOrders(isMinimal, cb) {
     logger.info('Getting open orders ...'.cyan);
 
-    this.bitstamp.getOpenOrders((err, rawData) => {
-      if (err) {
-        return (cb) ? cb(err) : this.bitstamp.printError(err, logger.error);
-      }
-
-      if (rawData.length === 0) {
-        return (cb) ? cb(err) :logger.info('No open orders'.green);
-      }
-
-      logger.info('Open orders: '.cyan);
-      logger.info(logger.spacedString('type', 20) + logger.spacedString('amount', 20) + logger.spacedString('price', 20) + logger.spacedString('id', 20));
-      _.forEach(rawData, order => {
-        let isBuy = (order.type == 0);
-        if (isBuy) {
-          logger.info((logger.spacedString('BUY', 20) + logger.spacedString(order.amount, 20) + logger.spacedString(order.price, 20) + logger.spacedString(order.id, 20)).yellow);
-        } else {
-          logger.info((logger.spacedString('SELL', 20) + logger.spacedString(order.amount, 20) + logger.spacedString(order.price, 20) + logger.spacedString(order.id, 20)).green);
+    if (this.isKraken) {
+      this.kraken.api('OpenOrders', {}, (err, rawData) => {
+        if (err) {
+          return (cb) ? cb(err) : logger.error(err)
         }
+
+        logger.info('Open orders: '.cyan);
+          
+        let cols = '';
+        cols += logger.spacedString('id', 22);
+        cols += logger.spacedString('status', 10);
+        cols += logger.spacedString('type', 12);
+        cols += logger.spacedString('pair', 8);
+        cols += logger.spacedString('vol', 12);
+        cols += logger.spacedString('price', 15);
+        cols += logger.spacedString('leverage', 10);
+        cols += logger.spacedString('vol exec', 12);
+        cols += logger.spacedString('close', 15);
+
+        if (!isMinimal) {
+          cols += logger.spacedString('cost', 12);
+          cols += logger.spacedString('fee', 12);
+          cols += logger.spacedString('price', 12);
+          cols += logger.spacedString('stop price', 12);
+          cols += logger.spacedString('limit price', 12);
+          cols += 'trades';
+        }
+
+        logger.info(cols);
+
+        _.forEach(rawData.result.open, (order, id) => {
+          let orderDesc = '';
+          orderDesc += logger.spacedString(id, 22);
+          orderDesc += logger.spacedString(order.status, 10)
+          orderDesc += logger.spacedString(order.descr.type + '(' + order.descr.ordertype +')', 12)
+          orderDesc += logger.spacedString(order.descr.pair, 8)
+          orderDesc += logger.spacedString(order.vol, 12);
+          orderDesc += logger.spacedString(order.descr.price + '/' + order.descr.price2, 15)
+          orderDesc += logger.spacedString(order.descr.leverage, 10)
+          orderDesc += logger.spacedString(order.vol_exec, 12);
+          orderDesc += logger.spacedString(logger.printAny(order.descr.close), 15);
+          
+
+          if (!isMinimal) {
+            orderDesc += logger.spacedString(logger.printAny(order.cost), 12);
+            orderDesc += logger.spacedString(order.fee, 12);
+            orderDesc += logger.spacedString(order.price, 12);
+            orderDesc += logger.spacedString(logger.printAny(order.stopprice), 12);
+            orderDesc += logger.spacedString(logger.printAny(order.limitprice), 12);
+           // orderDesc += order.trades.join(', ');
+          }
+
+          if (order.descr.type === 'sell') {
+            logger.info(orderDesc.yellow);
+          } else {
+            logger.info(orderDesc.green);
+          }
+        });
+
+        if (cb) cb(null);
       });
 
-      if (cb) cb(null);
-    });
+    } else {
+      this.bitstamp.getOpenOrders((err, rawData) => {
+        if (err) {
+          return (cb) ? cb(err) : this.bitstamp.printError(err, logger.error);
+        }
+
+        if (rawData.length === 0) {
+          return (cb) ? cb(err) :logger.info('No open orders'.green);
+        }
+
+        logger.info('Open orders: '.cyan);
+        logger.info(logger.spacedString('type', 20) + logger.spacedString('amount', 20) + logger.spacedString('price', 20) + logger.spacedString('id', 20));
+        _.forEach(rawData, order => {
+          let isBuy = (order.type == 0);
+          if (isBuy) {
+            logger.info((logger.spacedString('BUY', 20) + logger.spacedString(order.amount, 20) + logger.spacedString(order.price, 20) + logger.spacedString(order.id, 20)).yellow);
+          } else {
+            logger.info((logger.spacedString('SELL', 20) + logger.spacedString(order.amount, 20) + logger.spacedString(order.price, 20) + logger.spacedString(order.id, 20)).green);
+          }
+        });
+
+        if (cb) cb(null);
+      });
+    }
+    
   }
 
   cancelOrder(id) {
