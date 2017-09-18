@@ -3,7 +3,8 @@ const colors = require('colors');
 const logger = require('./src/logger');
 const args = require('commander');
 const config = require('./config.js');
-const { Main } = require('./src/main');
+const { KrakenMain } = require('./src/kraken/main');
+const { BitstampMain } = require('./src/bitstamp/main');
 
 
 
@@ -22,7 +23,7 @@ args
 
 args.on('--help', function(){
   let actionsPrefix = '    ';
-  
+
   let optionFormated = (option) => logger.spacedString(option.green, 69);
   let printOption = (option, desc) => console.log(actionsPrefix + optionFormated(option) + desc);
 
@@ -30,7 +31,9 @@ args.on('--help', function(){
   console.log('  Supported actions:');
   console.log('');
 
-  printOption('o, orders', 'list all open orders');
+  printOption('tb, trade_balance', 'trade balance' +' (kraken only)'.grey);
+
+  printOption('o, orders', 'list all open orders' + ' use -m to list minial stats'.grey);
   printOption('c, cancel -id <id>', 'cancel order <id>');
   printOption('t, trades', 'lists all traders stats' + ' use -m to list minial stats'.grey);
   printOption('r, revenue', 'lists revenue stats' + ' use -m to list minial stats'.grey);
@@ -42,8 +45,8 @@ args.on('--help', function(){
 });
 
 args.parse(process.argv);
-
-let main = new Main(config, args.exchange);
+let exchange = args.exchange && args.exchange.toLowerCase() === 'kraken' ? 'KRAKEN' : 'BITSTAMP';
+let main = (exchange === 'BITSTAMP') ? new BitstampMain(config) : new KrakenMain(config, args.exchange);
 
 let requiredField = (field, erroMsg, exitOnFail=true) => {
   if (!args[field]) {
@@ -69,11 +72,16 @@ let printHelpMessages = () => {
   args.outputHelp();
 }
 
+
 if (args.do) {
   switch(args.do) {
+    case 'trade_balance':
+    case 'tb':
+      main.getTradeBalance(args.minimal);
+      break;
     case 'trades':
     case 't':
-      main.getTrades(args.minimal);  
+      main.getTrades(args.minimal);
       break;
 
     case 'revenue':
@@ -89,7 +97,7 @@ if (args.do) {
     case 'simulate':
     case 'sim':
       requiredFields(
-        requiredField('sell_price', 'Price option needed: use with -s <sell_price>', false), 
+        requiredField('sell_price', 'Price option needed: use with -s <sell_price>', false),
         requiredField('amount', 'Amount option needed: use with -a <amount>', false)
       );
 
@@ -103,20 +111,20 @@ if (args.do) {
     case 'buy':
     case 'b':
       requiredFields(
-        requiredField('price', 'Price option needed: use with -p <price>', false), 
+        requiredField('price', 'Price option needed: use with -p <price>', false),
         requiredField('amount', 'Amount option needed: use with -a <amount>', false)
       );
-      
+
       main.buyLimitOrder(args.amount, args.price, args.minimal);
       break;
 
     case 'sell':
     case 's':
       requiredFields(
-        requiredField('price', 'Price option needed: use with -p <price>', false), 
+        requiredField('price', 'Price option needed: use with -p <price>', false),
         requiredField('amount', 'Amount option needed: use with -a <amount>', false)
       );
-      
+
       main.sellLimitOrder(args.amount, args.price, args.minimal);
       break;
 

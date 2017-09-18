@@ -28,4 +28,14 @@ logger.printAny = (str) => {
   return (str) ? str : '';
 }
 
+logger.printSE = (startStr, endStr, length = 50, sep = '.'.grey) => {
+  let final = startStr;
+  for (let i = 0; i < length - (startStr.length + endStr.length); i++) {
+    final += sep
+  }
+  final += endStr;
+  return final;
+}
+
+
 module.exports = logger;
