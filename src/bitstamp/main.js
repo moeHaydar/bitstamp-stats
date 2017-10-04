@@ -28,11 +28,37 @@ exports.BitstampMain = class {
   }
 
   formatPrice(price) {
-    return price + ' ' + this.currencySign;
+    return parseFloat(price).toFixed(2) + ' ' + this.currencySign;
+  }
+
+  formatAmount(amount) {
+    return parseFloat(amount).toFixed(4);
   }
 
   getTradeBalance(isMinimal, cb) {
-    return logger.info('Only for kraken. use -e kraken'.red);
+    logger.info('Getting trade balance ...'.cyan);
+
+    async.series({
+      transactions: done => this.bitstamp.getUserTransactions(done),
+      btcPrice: done => this.getBtcPrice(done),
+      user: done => this.bitstamp.getUserBalance(done)
+    }, (err, results) => {
+      if (err) {
+        return this.bitstamp.printError(err, logger.error);
+      }
+      let cash = parseFloat(results.user[this.currency + '_balance']);
+      let eqValue =  parseFloat(results.user.btc_available) * parseFloat(results.btcPrice);
+      let equity = eqValue + cash;
+
+      logger.info('\t' + logger.printSE('Equity ', ('' + this.formatPrice(equity)).green));
+      logger.info('\t' + logger.printSE('Cash ', this.formatPrice(cash).green));
+      logger.info('\t' + logger.printSE('BTC Available ', (this.formatAmount(results.user.btc_available)).green));
+      logger.info('\t' + logger.printSE('BTC Value ', (this.formatPrice(eqValue)).green));
+      let balance = new BitstampBalance(this.currency, this.btcCurrency, logger).init(results.transactions);
+
+      balance.printCurrentBalance('\t');
+    });
+
   }
 
   getOpenOrders(isMinimal, cb) {
@@ -124,6 +150,10 @@ exports.BitstampMain = class {
     } else {
       cb(null, parseFloat(amount));
     }
+  }
+
+  getBtcPrice(cb) {
+    this.bitstamp.getHourlyTicker( (err, rawData) => cb(err, rawData.last));
   }
 
   processPriceBitsamp(price, isMinimal, cb) {

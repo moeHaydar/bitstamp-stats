@@ -23,8 +23,14 @@ exports.KrakenMain = class {
     logger.info('Main exhange: ' + 'Kraken'.green);
   }
 
+
+
   formatPrice(price) {
     return price + ' ' + this.currencySign;
+  }
+
+  formatAmount(amount) {
+    return parseFloat(amount).toFixed(4);
   }
 
   getTradeBalance(isMinimal, cb) {
@@ -39,28 +45,45 @@ exports.KrakenMain = class {
     }
 
     logger.info('Getting trade balance ...'.cyan);
-    this.kraken.api('TradeBalance', {}, (err, response) => {
+
+     async.series({
+      balance: done => this.kraken.api('Balance', {}, done),
+      tradeBalance: done => this.kraken.api('TradeBalance', {}, done)
+     }, (err, results) => {
       if (err) {
         return (cb) ? cb(err) : logger.error(err)
       }
-      let rawData = response.result;
 
-      logger.info('Trade Balances: '.cyan);
+      let tradeBalance = results.tradeBalance.result;
 
-      printBalance(logger.printSE('Trade Balance ', this.formatPrice(rawData.tb).green), 'Total margin currency balance.'.grey);
+      logger.info('Trade Balances: '.yellow);
 
-      printBalance(logger.printSE('Equity ', this.formatPrice(rawData.e).green), 'Trade balance combined with unrealized profit/loss.'.grey);
+      printBalance(logger.printSE('Equity ', this.formatPrice(tradeBalance.e).green), 'Trade balance combined with unrealized profit/loss.'.grey);
 
-      printBalance(logger.printSE('Free Margin ', this.formatPrice(rawData.mf).green), 'Usable margin balance. Equal to equity minus used margin.'.grey);
+      printBalance(logger.printSE('Trade Balance ', this.formatPrice(tradeBalance.tb).green), 'Total margin currency balance.'.grey);
 
-      printBalance(logger.printSE('Margin Level ', (rawData.e + '%').green), 'Percentage ratio of equity to used margin.'.grey);
+      printBalance(logger.printSE('Profit/Loss', this.formatPrice(tradeBalance.n).green), 'Unrealized net profit/loss of open positions.'.grey);
+
+      printBalance(logger.printSE('Free Margin ', this.formatPrice(tradeBalance.mf).green), 'Usable margin balance. Equal to equity minus used margin.'.grey);
+
+      printBalance(logger.printSE('Margin Level ', (tradeBalance.e + '%').green), 'Percentage ratio of equity to used margin.'.grey);
+
+      printBalance(logger.printSE('Cost OP', this.formatPrice(tradeBalance.c).green), 'Cost basis of open positions'.grey);
+
+      printBalance(logger.printSE('Current floating valuation ', this.formatPrice(tradeBalance.v).green), 'Current floating valuation of open positions'.grey);
+
+      logger.info();
+      logger.info('Balance distribution:'.yellow);
+      let balance = results.balance.result;
 
 
-      printBalance(logger.printSE('Profit/Loss', this.formatPrice(rawData.n).green), 'Unrealized net profit/loss of open positions.'.grey);
+      _.forEach(balance, (v, k) => {
+        let amount = (k.indexOf('EUR') > -1) ? this.formatPrice(v) : this.formatAmount(v);
 
-      printBalance(logger.printSE('Cost OP', this.formatPrice(rawData.c).green), 'Cost basis of open positions'.grey);
+        printBalance(logger.printSE(k + ' ', amount.green));
+      });
 
-      printBalance(logger.printSE('Current floating valuation ', this.formatPrice(rawData.v).green), 'Current floating valuation of open positions'.grey);
+
 
       if (cb) return cb(true);
     });
@@ -137,6 +160,84 @@ exports.KrakenMain = class {
 
         if (cb) cb(null);
       });
+  }
+
+  getTrades(isMinimal) {
+    logger.info('Getting trades stats ...'.cyan);
+
+    // TODO
+  }
+
+  getRevenues(isMinimal) {
+    logger.info('Getting revenues stats ...'.cyan);
+
+
+    this.kraken.api('Spread', {pair: 'BCHEUR'}, (err, response) => {
+      if (err) {
+        logger.error(err);
+        return;
+      }
+
+      logger.info(response)
+    });
+    return
+
+    this.kraken.api('TradesHistory', {}, (err, response) => {
+      if (err) {
+        return this.bitstamp.printError(err, logger.error);
+      }
+
+      let rawData = response.result;
+
+      let trades = new KrakenBalance(this.currency, logger).init(_.flatMap(rawData.trades)).getTrades();
+
+      let statsAllRevenue = new Stats(this.currencySign);
+
+      _.forEach(trades, (monthData, month) => {
+        let statsMonthRevenue = new Stats(this.currencySign);
+        logger.info('\t' + moment(month, 'YYYYMMDD').format('MMMM YYYY').yellow + ':');
+
+
+        let pq = new PrinterQueue();
+
+        _.forEach(monthData, (dayData, day) => {
+          pq.newLine('\t\t\t' + moment(day, 'YYYYMMDD').format('DD, MMMM YYYY').yellow + ':');
+
+          let statsDayRevenue = new Stats(this.currencySign);
+
+          _.forEach(dayData, record => {
+            statsDayRevenue.appendRevenue(record.getRevenue());
+            statsDayRevenue.appendVolBtc(record.getBtc());
+            if (record.isSell()) {
+              statsDayRevenue.appendVolSold(record.getBtc());
+            }
+            statsDayRevenue.appendFees(record.getFee());
+          });
+
+          Stats.mergeStats(statsMonthRevenue, statsDayRevenue);
+
+          if (!isMinimal) {
+            statsDayRevenue.printRevenueStats(msg=>pq.newLine(msg), 'Revenue stats', '\t\t\t\t');
+
+            pq.newLine();
+          }
+        });
+
+        Stats.mergeStats(statsAllRevenue, statsMonthRevenue);
+
+        statsMonthRevenue.printRevenueStats(logger.info, 'Revenue stats:', '\t\t');
+
+        if (!isMinimal) {
+          logger.info('\t\tPer day: ');
+          pq.print(logger.info);
+        }
+
+        logger.info();
+      });
+
+      statsAllRevenue.printRevenueStats(logger.info, 'All revenue stats'.bold.cyan, "");
+
+    });
   }
 
   cancelOrder(id) {
@@ -274,12 +375,6 @@ exports.KrakenMain = class {
     });
   }
 
-  getTrades(isMinimal) {
-    logger.info('Getting trades stats ...'.cyan);
-
-    // TODO
-  }
-
   calcTrade(amount, buyPrice, sellPrice, isMinimal) {
     if (amount.toLowerCase() === 'all') {
       return logger.info('option value not supported: '.red + '"-a all"'.green);
@@ -397,64 +492,5 @@ exports.KrakenMain = class {
 
   }
 
-  getRevenues(isMinimal) {
-    logger.info('Getting revenues stats ...'.cyan);
 
-    this.kraken.api('TradesHistory', {}, (err, response) => {
-      if (err) {
-        return this.bitstamp.printError(err, logger.error);
-      }
-
-      let rawData = response.result;
-
-      let trades = new KrakenBalance(this.currency, logger).init(_.flatMap(rawData.trades)).getTrades();
-
-      let statsAllRevenue = new Stats(this.currencySign);
-
-      _.forEach(trades, (monthData, month) => {
-        let statsMonthRevenue = new Stats(this.currencySign);
-        logger.info('\t' + moment(month, 'YYYYMMDD').format('MMMM YYYY').yellow + ':');
-
-
-        let pq = new PrinterQueue();
-
-        _.forEach(monthData, (dayData, day) => {
-          pq.newLine('\t\t\t' + moment(day, 'YYYYMMDD').format('DD, MMMM YYYY').yellow + ':');
-
-          let statsDayRevenue = new Stats(this.currencySign);
-
-          _.forEach(dayData, record => {
-            statsDayRevenue.appendRevenue(record.getRevenue());
-            statsDayRevenue.appendVolBtc(record.getBtc());
-            if (record.isSell()) {
-              statsDayRevenue.appendVolSold(record.getBtc());
-            }
-            statsDayRevenue.appendFees(record.getFee());
-          });
-
-          Stats.mergeStats(statsMonthRevenue, statsDayRevenue);
-
-          if (!isMinimal) {
-            statsDayRevenue.printRevenueStats(msg=>pq.newLine(msg), 'Revenue stats', '\t\t\t\t');
-
-            pq.newLine();
-          }
-        });
-
-        Stats.mergeStats(statsAllRevenue, statsMonthRevenue);
-
-        statsMonthRevenue.printRevenueStats(logger.info, 'Revenue stats:', '\t\t');
-
-        if (!isMinimal) {
-          logger.info('\t\tPer day: ');
-          pq.print(logger.info);
-        }
-
-        logger.info();
-      });
-
-      statsAllRevenue.printRevenueStats(logger.info, 'All revenue stats'.bold.cyan, "");
-
-    });
-  }
 }

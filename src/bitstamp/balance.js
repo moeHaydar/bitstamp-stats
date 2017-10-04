@@ -67,7 +67,7 @@ exports.BitstampBalance = class {
   init(data) {
     _.forEach(data, record => {
       if (record.type != Bitstamp.TRANSACTIONS.TRADE) {
-        return logger.info('skipping transaction: ' + r.type.green )
+        return printer.info('skipping transaction: ' + r.type.green )
       }
 
       let datetime = moment(record.datetime);
@@ -147,7 +147,7 @@ exports.BitstampBalance = class {
 
   printCurrentBalance(prefix = '') {
     this.printer.info();
-    this.printer.info(prefix + 'Current balance: '.yellow);
+    this.printer.info(prefix + 'Current coin balance: '.yellow);
     this.printer.info(prefix + '\t' + this.printer.spacedString('price', 18).underline + '  ' + this.printer.spacedString('btc', 18).underline + '  ' + this.printer.spacedString('fee', 18).underline);
 
     this.balance.forEach( (v, i) => {
