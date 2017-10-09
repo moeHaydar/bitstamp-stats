@@ -290,6 +290,11 @@ exports.BitstampMain = class {
       },
 
       done => {
+        this.calcSellAt(amount, price, true, done);
+
+      },
+
+      done => {
        new Confirm('Are you sure?')
         .ask(ok => {
           if (ok) {
@@ -299,6 +304,7 @@ exports.BitstampMain = class {
           }
         });
       },
+
       done => {
         this.bitstamp.sellLimitOrder(amount, price, (err, result) => {
           if (err) {
@@ -455,7 +461,7 @@ exports.BitstampMain = class {
     });
   }
 
-  calcSellAt(amount, price, isMinimal) {
+  calcSellAt(amount, price, isMinimal, cb) {
     logger.info('calculating profit if selling '.cyan + '%j'.yellow + ' @ '.cyan + '%j'.yellow + '...'.cyan, amount, price);
 
     async.series({
@@ -494,7 +500,7 @@ exports.BitstampMain = class {
       }
     }, (err, results) => {
       if (err) {
-        return this.bitstamp.printError(err, logger.error);
+        return (cb) ? cb(err) : this.bitstamp.printError(err, logger.error);
       }
 
       let balance = new BitstampBalance(this.currency, this.btcCurrency, logger).init(results.transactions);
@@ -515,6 +521,9 @@ exports.BitstampMain = class {
 
       logger.info(('  Expected profit (' + this.currencySign + '): ').yellow + (expectedProfit + '').green);
 
+      if (cb) {
+        cb(null);
+      }
     });
 
   }
