@@ -33,6 +33,8 @@ args.on('--help', function(){
 
   printOption('tb, trade_balance', 'trade balance' +' (kraken only)'.grey);
 
+  printOption('cp, curren_price', 'get current price of bitcoin');
+
   printOption('o, orders', 'list all open orders' + ' use -m to list minial stats'.grey);
   printOption('c, cancel -id <id>', 'cancel order <id>');
   printOption('t, trades', 'lists all traders stats' + ' use -m to list minial stats'.grey);
@@ -83,6 +85,12 @@ if (args.do) {
     case 't':
       main.getTrades(args.minimal);
       break;
+
+    case 'cp':
+    case 'curren_price':
+      main.getCurrentPrice(args.minimal);
+      break;
+
 
     case 'revenue':
     case 'r':

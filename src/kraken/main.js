@@ -23,8 +23,6 @@ exports.KrakenMain = class {
     logger.info('Main exhange: ' + 'Kraken'.green);
   }
 
-
-
   formatPrice(price) {
     return price + ' ' + this.currencySign;
   }
@@ -160,6 +158,24 @@ exports.KrakenMain = class {
 
         if (cb) cb(null);
       });
+  }
+
+  getCurrentPrice(isMinimal) {
+    // for now just show XBT EUR
+    this.kraken.api('Ticker', {pair: 'XBTEUR'}, (err, rawData) => {
+      if (err) {
+        logger.error(err);
+      }
+
+      let xbt = rawData.result.XXBTZEUR;
+
+      logger.info('\t' + logger.spacedString('ASK price', 40) + '  ' + logger.spacedString(xbt.a[0], 20));
+      logger.info('\t' + logger.spacedString('BID price', 40) + '  ' + logger.spacedString(xbt.b[0], 20));
+      logger.info('\t' + logger.spacedString('LAST TRADE price', 40) + '  ' + logger.spacedString(xbt.c[0], 20));
+      logger.info('\t' + logger.spacedString('HIGH price', 40) + '  ' + logger.spacedString(xbt.h[0], 20));
+      logger.info('\t' + logger.spacedString('LOW price', 40) + '  ' + logger.spacedString(xbt.l[0], 20));
+      logger.info('\t' + logger.spacedString('OPENING price', 40) + '  ' + logger.spacedString(xbt.o, 20));
+    })
   }
 
   getTrades(isMinimal) {

@@ -153,7 +153,31 @@ exports.BitstampMain = class {
   }
 
   getBtcPrice(cb) {
-    this.bitstamp.getHourlyTicker( (err, rawData) => cb(err, rawData.last));
+    this.bitstamp.getHourlyTicker((err, rawData) => cb(err, rawData.last));
+  }
+
+  getCurrentPrice(isMinimal) {
+    this.bitstamp.getHourlyTicker((err, rawData) => {
+      if (err) {
+        return this.bitstamp.printError(err, logger.error);
+      }
+
+      logger.info('Last BTC price: '.yellow);
+      logger.info('\t' + logger.spacedString('', 40) + '  ' + logger.spacedString(rawData.last, 20).bold.green);
+
+      if (!isMinimal) {
+          logger.info();
+          logger.info('In the last hour: '.yellow);
+          logger.info('\t' + logger.spacedString('HIGH price', 40) + '  ' + logger.spacedString(rawData.high, 20));
+          logger.info('\t' + logger.spacedString('LOW price', 40) + '  ' + logger.spacedString(rawData.low, 20));
+          logger.info('\t' + logger.spacedString('volume weighted average price', 40) + '  ' + logger.spacedString(rawData.vwap, 20));
+          logger.info('\t' + logger.spacedString('Volume', 40) + '  ' + logger.spacedString(rawData.volume, 20));
+          logger.info('\t' + logger.spacedString('Highest buy order', 40) + '  ' + logger.spacedString(rawData.bid, 20));
+          logger.info('\t' + logger.spacedString('Lowest sell order.', 40) + '  ' + logger.spacedString(rawData.ask, 20));
+          logger.info('\t' + logger.spacedString('First price', 40) + '  ' + logger.spacedString(rawData.open, 20));
+      }
+
+    })
   }
 
   processPriceBitsamp(price, isMinimal, cb) {
@@ -176,7 +200,6 @@ exports.BitstampMain = class {
             logger.info('\t' + logger.spacedString('Volume', 40) + '  ' + logger.spacedString(rawData.volume, 20));
             logger.info('\t' + logger.spacedString('Highest buy order', 40) + '  ' + logger.spacedString(rawData.bid, 20));
             logger.info('\t' + logger.spacedString('Lowest sell order.', 40) + '  ' + logger.spacedString(rawData.ask, 20));
-            logger.info('\t' + logger.spacedString('timestamp', 40) + '  ' + logger.spacedString(rawData.timestamp, 20));
             logger.info('\t' + logger.spacedString('First price', 40) + '  ' + logger.spacedString(rawData.open, 20));
 
             logger.info();
@@ -402,6 +425,7 @@ exports.BitstampMain = class {
     });
   }
 
+
   calcTrade(amount, buyPrice, sellPrice, isMinimal) {
     if (amount.toLowerCase() === 'all') {
       return logger.info('option value not supported: '.red + '"-a all"'.green);
@@ -442,8 +466,8 @@ exports.BitstampMain = class {
         return this.bitstamp.printError(err, logger.error);
       }
 
-      let expectedBuyFee = parseFloat(buyPrice) * parseFloat(results.user.fee) / 100;
-      let expectedSellFee = parseFloat(sellPrice) * parseFloat(results.user.fee) / 100;
+      let expectedBuyFee = amount * parseFloat(buyPrice) * parseFloat(results.user.fee) / 100;
+      let expectedSellFee = amount * parseFloat(sellPrice) * parseFloat(results.user.fee) / 100;
       let expectedRevenue = amount * (sellPrice - buyPrice);
       let expectedProfit = expectedRevenue - expectedBuyFee - expectedSellFee;
 
@@ -506,7 +530,7 @@ exports.BitstampMain = class {
       let sellData = balance.sell(price, amount);
       logger.info(('          Revenue (' + this.currencySign + '): ').yellow + (sellData.getRevenue() + '').green);
 
-      let expectedFee = parseFloat(price) * parseFloat(results.user.fee) / 100;
+      let expectedFee = amount * parseFloat(price) * parseFloat(results.user.fee) / 100;
       let expectedProfit = sellData.getRevenue() - (sellData.getFee() + expectedFee);
 
       logger.info(('          Buy fee (' + this.currencySign + '): ').yellow + (sellData.getFee() + '').red);
