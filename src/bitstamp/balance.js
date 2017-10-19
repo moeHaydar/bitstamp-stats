@@ -53,8 +53,6 @@ class RevenueFee {
   }
 }
 
-
-
 exports.BitstampBalance = class {
   constructor(currency, btc_currency, printer) {
     this.currency = currency;
