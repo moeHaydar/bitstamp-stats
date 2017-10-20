@@ -89,58 +89,12 @@ exports.KrakenMain = class {
           return;
         }
 
-        let xbtMap = new Map();
-        let countedXbt = 0;
-        _.forEach(trades, t => {
-
-          let currentVol = parseFloat(t.vol);
-          let volNeeded = currentXBT - countedXbt;
-          let percNeeded = (currentVol < volNeeded) ? 1 : volNeeded/currentVol;
-
-          let newVol = currentVol * percNeeded;
-          let newFee = parseFloat(t.fee)  * percNeeded;
-          let newCost = parseFloat(t.cost)  * percNeeded;
-
-          let currentEntry = xbtMap.get(t.price);
-          if (currentEntry) {
-             xbtMap.set(t.price, {
-              vol: xbtMap.get(t.price).vol + newVol,
-              fee: xbtMap.get(t.price).fee + newFee,
-              cost: xbtMap.get(t.price).cost + newCost
-            });
-
-          } else {
-            xbtMap.set(t.price, {
-              vol: newVol,
-              fee: newFee,
-              cost: newCost
-            });
-          }
-
-          countedXbt += newVol;
-        });
-
-        let mapValues = Array.from(xbtMap.values());
-
-        let vol = _.sumBy(mapValues, (o) => parseFloat(o.vol));
-        let cost = _.sumBy(mapValues, (o) => parseFloat(o.cost));
-        let fee = _.sumBy(mapValues, (o) => parseFloat(o.fee));
+        let balance = new KrakenBalance(this.currency, this.currencySign, logger).init(trades, currentXBT);
 
         logger.info();
         logger.info('XBT cost:'.yellow);
 
-        logger.info('\t' + logger.printSE('Vol ', this.formatAmount(vol).green));
-        logger.info('\t' + logger.printSE('Cost ', this.formatPrice(cost).green));
-        logger.info('\t' + logger.printSE('Fee ', this.formatPrice(fee).green));
-
-        logger.info();
-
-        logger.info('\t' + logger.spacedString('price', 18).underline + '  ' + logger.spacedString('btc', 18).underline + '  ' + logger.spacedString('fee', 18).underline);
-
-        xbtMap.forEach((t, i)  => {
-          logger.info('\t' + logger.spacedString(this.formatPrice(i), 20) + logger.spacedString(this.formatAmount(t.vol), 20), + logger.spacedString(t.fee, 20));
-        });
-
+        balance.printCurrentBalance('\t');
 
       });
 

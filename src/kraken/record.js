@@ -5,37 +5,32 @@ const SELL_RECORD = 'SELL';
 
 class Record {
   constructor(obj) {
-    this.btc = parseFloat(obj.vol);
+    this.vol = parseFloat(obj.vol);
     this.type = obj.type.toLowerCase() === 'sell' ? SELL_RECORD : BUY_RECORD;
-    this.btcPrice = parseFloat(obj.price);
-    this.currAmount = parseFloat(obj.cost);
+    this.price = parseFloat(obj.price);
+    this.cost = parseFloat(obj.cost);
     this.fee = parseFloat(obj.fee);
-    this.margin = parseFloat(obj.margin);
-    this.revenue = 0;
   }
 
-  setRevenue(rev) {
-    this.revenue = rev;
-  }
   getFee() {
     return this.fee;
   }
-  getBtcPrice() {
-    return this.btcPrice;
+
+  getPrice() {
+    return this.price;
   }
 
-  getCurrAmount() {
-    return this.currAmount;
+  getCost() {
+    return this.cost;
   }
 
-  getBtc() {
-    return this.btc;
+  getVol() {
+    return this.vol;
   }
-
-  getRevenue() {
-    return this.revenue;
+  getType() {
+    return this.type;
   }
-
+  
   isBuy() {
     return this.type === BUY_RECORD;
   }
