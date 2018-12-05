@@ -7,7 +7,6 @@ const { KrakenMain } = require('./src/kraken/main');
 const { BitstampMain } = require('./src/bitstamp/main');
 
 
-
 // set options
 args
   .version('0.0.1')
